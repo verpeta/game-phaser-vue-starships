@@ -1,28 +1,58 @@
 <template>
-  <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div class="App">
+    <header class="App-header">
+      <template v-if="!initialize">
+        <div @click="initializeGame" class="flex">
+          <a href="#1" class="bttn">Initialize</a>
+        </div>
+      </template>
+      <ion-phaser
+          v-bind:game.prop="game"
+          v-bind:initialize.prop="initialize"
+      />
+    </header>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import Phaser from "phaser";
+import BootScene from "@/game/scenes/BootScene";
+import PlayScene from "@/game/scenes/PlayScene";
 
 export default {
-  name: 'App',
-  components: {
-    HelloWorld
+  data() {
+    return {
+      initialize: true,
+      sc: PlayScene,
+      game: {
+        kek: "kek",
+        type: Phaser.AUTO,
+        width: 750,
+        height: 600,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            debug: false
+          }
+        },
+       scene: [BootScene, PlayScene]
+    }
   }
+  },
+  methods: {
+    initializeGame: function () {
+      this.initialize = true
+    }
+  },
 }
 </script>
 
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+<style lang="scss">
+body {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
 }
 </style>
