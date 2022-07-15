@@ -1,4 +1,4 @@
-# vue-phaser-game
+# Game: starships
 
 ## Project setup
 ```
@@ -10,15 +10,13 @@ yarn install
 yarn serve
 ```
 
-### Compiles and minifies for production
-```
-yarn build
-```
+## Built-on
+- [Phaser3](https://github.com/photonstorm/phaser)
+- Vue.js - v2+
+- socket.io
+- node.js (as backend server) - v14+
+- mongoDb 
+- docker + docker-compose
 
-### Lints and fixes files
-```
-yarn lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+## Game
+![game](./docs/game_sceenshot.png)
