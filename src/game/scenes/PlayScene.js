@@ -1,6 +1,7 @@
 import {Scene} from 'phaser'
 import {io} from "socket.io-client";
 import LaserGroup from "@/game/components/LaserGroup"
+import store from "@/store/index"
 
 export default class PlayScene extends Scene {
     scoreText;
@@ -13,6 +14,12 @@ export default class PlayScene extends Scene {
     }
 
     create() {
+        // store.subscribe((mutation, state) => {
+        //     console.log(mutation)
+        //     console.log(mutation.payload)
+        // })
+        //store.dispatch('createTeam',{name:"great"});
+
         this.initWS();
         this.sound.add('bang')
         this.otherPlayers = this.physics.add.group();
@@ -29,7 +36,6 @@ export default class PlayScene extends Scene {
 
 
     update() {
-        // this.physics.add.collider(this.ball, this.paddle, this.ballHitPaddle, null, this);
         if(this.spceBack) {
             this.spceBack.tilePositionY -= 1;
         }
@@ -58,7 +64,7 @@ export default class PlayScene extends Scene {
             if (this.ship.oldPosition && (x !== this.ship.oldPosition.x || y !== this.ship.oldPosition.y || r !== this.ship.oldPosition.rotation)) {
                 this.socket.emit('playerMovement', {x: this.ship.x, y: this.ship.y, rotation: this.ship.rotation});
             }
-// save old position data
+
             this.ship.oldPosition = {
                 x: this.ship.x,
                 y: this.ship.y,
@@ -66,7 +72,6 @@ export default class PlayScene extends Scene {
             };
 
             this.inputKeys.forEach(key => {
-                // If key was just pressed down, shoot the laser. We use JustDown to make sure this only fires once.
                 if (Phaser.Input.Keyboard.JustDown(key)) {
                     this.shootLaser();
                 }
@@ -79,27 +84,38 @@ export default class PlayScene extends Scene {
         this.bug = this.physics.add.image(-100, 120, 'bug1').setOrigin(0.5, 0.5).setDisplaySize(70, 70);
         this.bug.setVelocityX(100);
         this.physics.world.wrap(this.bug, 5);
-        console.log(this.bug);
     }
 
     initWS() {
         let self = this;
-        this.socket = io("http://localhost:3005");
-        this.socket.on('currentPlayers', function (players) {
+
+        if(!store.getters.stateCurrentPlayer.nickname){
+            throw new Error("Nickname - required!!!");
+        }
+
+        const socket = io("http://localhost:3005", {
+            auth: {
+                user: store.getters.stateCurrentPlayer.nickname,
+            }
+        });
+        socket.on('currentPlayers', function (players) {
             Object.keys(players).forEach(function (id) {
-                if (players[id].playerId === self.socket.id) {
+                if(!players[id]){
+                    return;
+                }
+                if (players[id].playerId === socket.id) {
                     self.addPlayer(self, players[id]);
                 } else {
                     self.addOtherPlayers(self, players[id]);
                 }
             });
         });
-        this.socket.on('newPlayer', function (playerInfo) {
+        socket.on('newPlayer', function (playerInfo) {
             console.log(playerInfo)
 
             self.addOtherPlayers(self, playerInfo);
         });
-        this.socket.on('playerMoved', function (playerInfo) {
+        socket.on('playerMoved', function (playerInfo) {
             self.otherPlayers.getChildren().forEach(function (otherPlayer) {
                 if (playerInfo.playerId === otherPlayer.playerId) {
                     otherPlayer.setRotation(playerInfo.rotation);
@@ -107,29 +123,38 @@ export default class PlayScene extends Scene {
                 }
             });
         });
-        this.socket.on('disconnected', function (playerId) {
-            console.log(playerId)
+
+        socket.on('disconnect', function (reason) {
+            console.log(reason, "disconnected")
+            alert("Connection with server - Lost! \nExiting...");
+            window.location.reload();
+        });
+
+        socket.on('player-gone', function (id) {
+            console.log(id, "player-gone");
             self.otherPlayers.getChildren().forEach(function (otherPlayer) {
-                if (playerId === otherPlayer.playerId) {
+                if (id === otherPlayer.playerId) {
                     otherPlayer.destroy();
                 }
             });
         });
-        this.socket.on('starLocation', function (starLocation) {
+        socket.on('starLocation', function (starLocation) {
             if (self.star) self.star.destroy();
             self.star = self.physics.add.image(starLocation.x, starLocation.y, 'star');
             self.physics.add.overlap(self.ship, self.star, function () {
-                this.socket.emit('starCollected');
+                socket.emit('starCollected');
             }, null, self);
         });
 
         this.blueScoreText = this.add.text(16, 16, '', {fontSize: '32px', fill: '#0000FF'});
         this.redScoreText = this.add.text(584, 16, '', {fontSize: '32px', fill: '#FF0000'});
 
-        this.socket.on('scoreUpdate', function (scores) {
+        socket.on('scoreUpdate', function (scores) {
             self.blueScoreText.setText('Blue: ' + scores.blue);
             self.redScoreText.setText('Red: ' + scores.red);
         });
+
+        this.socket = socket;
     }
 
     addPlayer(self, playerInfo) {
@@ -159,19 +184,7 @@ export default class PlayScene extends Scene {
         self.otherPlayers.add(otherPlayer);
     }
 
-
-    createPlatforms() {
-        this.platforms = this.physics.add.staticGroup();
-        // this.platforms.create(400, 568, 'platform').setScale(2).refreshBody();
-
-        //  this.platforms.create(600, 400, 'platform');
-        // this.platforms.create(50, 250, 'platform');
-        //  this.platforms.create(750, 220, 'platform');
-    }
-
     addEvents() {
-
-
         this.input.on('pointerdown', pointer => {
             this.shootLaser();
         });
@@ -207,6 +220,5 @@ export default class PlayScene extends Scene {
         let scaleY = this.cameras.main.height / this.spceBack.height
         let scale = Math.max(scaleX, scaleY)
         this.spceBack.setScale(scale).setScrollFactor(1).setDepth(-1);
-            // .setScale(3,3);
     }
 }
