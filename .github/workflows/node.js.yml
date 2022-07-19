@@ -18,7 +18,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: 168.119.248.32
-          username: root
+          username: deploy
           key: ${{secrets.OMG_SECRET}}
           port: 22
           script: |
