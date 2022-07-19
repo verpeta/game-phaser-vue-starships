@@ -56,7 +56,7 @@ export default {
   },
   methods: {
     initializeGame: function () {
-      axios.post("//localhost:3005/api/user/add", {nickname: this.username}).then(function (data) {
+      axios.post("//168.119.248.32:3005/api/user/add", {nickname: this.username}).then(function (data) {
         console.log(data.data);
         if (data.data.errors) {
           alert(data.data.errors[0]);
@@ -70,7 +70,7 @@ export default {
     }
   },
   created() {
-    axios.get("//localhost:3005/api/user/all").then(function (response) {
+    axios.get("//168.119.248.32:3005/api/user/all").then(function (response) {
       this.onlinePlayers = response.data.players;
     }.bind(this));
   },

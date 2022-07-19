@@ -94,7 +94,7 @@ export default class PlayScene extends Scene {
             throw new Error("Nickname - required!!!");
         }
 
-        const socket = io("http://localhost:3005", {
+        const socket = io("http://168.119.248.32:3005", {
             auth: {
                 user: store.getters.stateCurrentPlayer.nickname,
             }
