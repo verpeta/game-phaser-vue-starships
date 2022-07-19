@@ -22,9 +22,9 @@ jobs:
           key: ${{secrets.OMG_SECRET}}
           port: 22
           script: |
-            pwd
-            whoami
-            git status
+            cd ./space-kwiddich-front
+            yarn install
+            yarn build
 
 
 
