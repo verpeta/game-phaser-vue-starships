@@ -24,7 +24,6 @@ export default class PlayScene extends Scene {
         this.sound.add('bang')
         this.otherPlayers = this.physics.add.group();
 
-        this.scoreText = this.add.text(5, 5, 'Points: ' + this.score, {font: '18px Arial', fill: '#ffdd32'});
         this.cursors = this.input.keyboard.createCursorKeys();
         this.laserGroup = new LaserGroup(this);
 
@@ -62,6 +61,8 @@ export default class PlayScene extends Scene {
             var y = this.ship.y;
             var r = this.ship.rotation;
             if (this.ship.oldPosition && (x !== this.ship.oldPosition.x || y !== this.ship.oldPosition.y || r !== this.ship.oldPosition.rotation)) {
+                this.ship.alias.x = x;
+                this.ship.alias.y = y+25;
                 this.socket.emit('playerMovement', {x: this.ship.x, y: this.ship.y, rotation: this.ship.rotation});
             }
 
@@ -120,6 +121,8 @@ export default class PlayScene extends Scene {
                 if (playerInfo.playerId === otherPlayer.playerId) {
                     otherPlayer.setRotation(playerInfo.rotation);
                     otherPlayer.setPosition(playerInfo.x, playerInfo.y);
+                    otherPlayer.alias.x = playerInfo.x;
+                    otherPlayer.alias.y = playerInfo.y+20;
                 }
             });
         });
@@ -171,6 +174,8 @@ export default class PlayScene extends Scene {
         self.ship.setDrag(100);
         self.ship.setAngularDrag(100);
         self.ship.setMaxVelocity(300);
+
+        self.ship.alias = this.add.text(self.ship.x, self.ship.y+25, playerInfo.nickname, {font: '18px Arial', fill: 'green'});
     }
 
     addOtherPlayers(self, playerInfo) {
@@ -181,6 +186,7 @@ export default class PlayScene extends Scene {
             otherPlayer.setTint(0xff0000);
         }
         otherPlayer.playerId = playerInfo.playerId;
+        otherPlayer.alias = this.add.text(playerInfo.x, playerInfo.y+20, playerInfo.nickname, {font: '18px Arial', fill: '#ffdd32'});
         self.otherPlayers.add(otherPlayer);
     }
 

@@ -10,22 +10,42 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [14.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
+  deploy:
+    name: Deploy
+    runs-on: self-hosted
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm install yarn
-    - run: yarn install
-    - run: yarn build
+      - name: test ssh
+        uses: appleboy/ssh-action@master
+        with:
+          host: 168.119.248.32
+          username: root
+          key: ${{secrets.OMG_SECRET}}
+          port: 22
+          script: |
+            pwd
+            whoami
+            git status
+
+
+
+
+#jobs:
+#  build:
+#
+#    runs-on: ubuntu-latest
+#
+#    strategy:
+#      matrix:
+#        node-version: [14.x]
+#        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+#
+#    steps:
+#    - uses: actions/checkout@v3
+#    - name: Use Node.js ${{ matrix.node-version }}
+#      uses: actions/setup-node@v3
+#      with:
+#        node-version: ${{ matrix.node-version }}
+#        cache: 'npm'
+#    - run: npm install yarn
+#    - run: yarn install
+#    - run: yarn build
