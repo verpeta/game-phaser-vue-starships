@@ -14,7 +14,7 @@ yarn serve
 - [Phaser3](https://github.com/photonstorm/phaser)
 - Vue.js - v3
 - socket.io
-- node.js (as backend server) - v14+
+- node.js (as [backend server](https://github.com/verpeta/space-kwiddich-back)) - v14+
 - mongoDb 
 - docker + docker-compose
 
