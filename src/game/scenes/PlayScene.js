@@ -2,12 +2,15 @@ import {Scene} from 'phaser'
 import {io} from "socket.io-client";
 import LaserGroup from "@/game/components/LaserGroup"
 import store from "@/store/index"
+import domains from "@/config/domains";
 
 export default class PlayScene extends Scene {
     scoreText;
     score = 0;
     otherPlayers;
     laserGroup;
+    #bangAudio;
+    #mainSound;
 
     constructor() {
         super({key: 'PlayScene'})
@@ -21,7 +24,8 @@ export default class PlayScene extends Scene {
         //store.dispatch('createTeam',{name:"great"});
 
         this.initWS();
-        this.sound.add('bang')
+        this.#bangAudio = this.sound.add('bang', {volume: 0.2})
+        this.#mainSound = this.sound.add('mainSong', {volume: 1})
         this.otherPlayers = this.physics.add.group();
 
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -30,7 +34,10 @@ export default class PlayScene extends Scene {
 
         this.addEvents();
         this.addBug();
+        this.addBug2();
         this.createBackground();
+
+        this.#mainSound.play();
     }
 
 
@@ -40,15 +47,18 @@ export default class PlayScene extends Scene {
         }
         if (this.ship) {
             if (this.cursors.left.isDown) {
-                this.ship.setAngularVelocity(-150);
+                this.ship.setAngularVelocity(-300);
+                this.ship.setAcceleration(0);
             } else if (this.cursors.right.isDown) {
-                this.ship.setAngularVelocity(150);
+                this.ship.setAngularVelocity(300);
+                this.ship.setAcceleration(0);
             } else {
                 this.ship.setAngularVelocity(0);
+                this.ship.setAcceleration(0);
             }
 
             if (this.cursors.up.isDown) {
-                this.physics.velocityFromRotation(this.ship.rotation + 1.5, 100, this.ship.body.acceleration);
+                this.physics.velocityFromRotation(this.ship.rotation + 1.5, 500, this.ship.body.acceleration);
             } else {
                 this.ship.setAcceleration(0);
             }
@@ -56,6 +66,7 @@ export default class PlayScene extends Scene {
 
             this.physics.world.wrap(this.ship, 5);
             this.physics.world.wrap(this.bug, 5);
+            this.physics.world.wrap(this.bug2, 5);
 
             var x = this.ship.x;
             var y = this.ship.y;
@@ -82,9 +93,15 @@ export default class PlayScene extends Scene {
     }
 
     addBug() {
-        this.bug = this.physics.add.image(-100, 120, 'bug1').setOrigin(0.5, 0.5).setDisplaySize(70, 70);
+        this.bug = this.physics.add.image(0, this.#getRndInteger(0,600), 'bug1').setOrigin(0.5, 0.5).setDisplaySize(70, 70);
         this.bug.setVelocityX(100);
         this.physics.world.wrap(this.bug, 5);
+    }
+
+    addBug2() {
+        this.bug2 = this.physics.add.image(0, this.#getRndInteger(0,600), 'bug2').setOrigin(0.5, 0.5).setDisplaySize(80, 60);
+        this.bug2.setVelocityX(200);
+        this.physics.world.wrap(this.bug2, 5);
     }
 
     initWS() {
@@ -94,7 +111,7 @@ export default class PlayScene extends Scene {
             throw new Error("Nickname - required!!!");
         }
 
-        const socket = io("http://168.119.248.32:3005", {
+        const socket = io(domains.server, {
             auth: {
                 user: store.getters.stateCurrentPlayer.nickname,
             }
@@ -137,6 +154,7 @@ export default class PlayScene extends Scene {
             console.log(id, "player-gone");
             self.otherPlayers.getChildren().forEach(function (otherPlayer) {
                 if (id === otherPlayer.playerId) {
+                    otherPlayer.alias.destroy();
                     otherPlayer.destroy();
                 }
             });
@@ -145,6 +163,7 @@ export default class PlayScene extends Scene {
             if (self.star) self.star.destroy();
             self.star = self.physics.add.image(starLocation.x, starLocation.y, 'star');
             self.physics.add.overlap(self.ship, self.star, function () {
+                self.star.destroy();
                 socket.emit('starCollected');
             }, null, self);
         });
@@ -152,29 +171,47 @@ export default class PlayScene extends Scene {
         this.blueScoreText = this.add.text(16, 16, '', {fontSize: '32px', fill: '#0000FF'});
         this.redScoreText = this.add.text(584, 16, '', {fontSize: '32px', fill: '#FF0000'});
 
+        this.blueKillsText = this.add.text(18, 45, '', {fontSize: '20px', fill: 'orange'});
+        this.redKillsText = this.add.text(586, 45, '', {fontSize: '20px', fill: 'orange'});
+
         socket.on('scoreUpdate', function (scores) {
             self.blueScoreText.setText('Blue: ' + scores.blue);
             self.redScoreText.setText('Red: ' + scores.red);
+        });
+
+        socket.on('killCountUpdate', function (killed) {
+            self.blueKillsText.setText('Killed: ' + killed.blue);
+            self.redKillsText.setText('Killed: ' + killed.red);
         });
 
         this.socket = socket;
     }
 
     addPlayer(self, playerInfo) {
-        self.ship = self.physics.add.image(playerInfo.x, playerInfo.y, 'ship')
-            .setOrigin(0.5, 0.5)
-            .setDisplaySize(53, 40);
 
+        self.ship =
+            self.physics.add.sprite(playerInfo.x, playerInfo.y, 'ship')
+            .setOrigin(0.5, 0.5)
+            .setDisplaySize(55, 80);
+
+        self.anims.create({
+            key: "ship_ani",
+            frames: self.anims.generateFrameNumbers("ship", ),
+            frameRate: 10,
+            repeat: -1
+        })
+        self.ship.play("ship_ani");
         if (playerInfo.team === 'blue') {
-            self.ship.setTint(0x0000ff);
+         //   self.ship.setTint(0x0000ff);
         } else {
-            self.ship.setTint(0xff0000);
+           // self.ship.setTint(0xff0000);
         }
 
-        self.ship.setDrag(100);
+        self.ship.setDrag(300);
         self.ship.setAngularDrag(100);
         self.ship.setMaxVelocity(300);
 
+        self.ship.player = playerInfo;
         self.ship.alias = this.add.text(self.ship.x, self.ship.y+25, playerInfo.nickname, {font: '18px Arial', fill: 'green'});
     }
 
@@ -207,13 +244,26 @@ export default class PlayScene extends Scene {
 
         this.physics.add.overlap(laser, this.bug, function (laser, bug) {
             if (laser.active && bug.active) {
+                this.#bangAudio.play();
+                this.socket.emit('bugKilled', {playerId: this.ship.player.playerId});
                 this.bug.setActive(false);
                 this.bug.setVisible(false);
                 laser.setActive(false);
                 laser.setVisible(false);
                 self.addBug();
             }
-        }, null, this);
+        }.bind(this), null, this);
+        this.physics.add.overlap(laser, this.bug2, function (laser, bug) {
+            if (laser.active && bug.active) {
+                this.#bangAudio.play();
+                this.socket.emit('bugKilled', {playerId: this.ship.player.playerId});
+                this.bug2.setActive(false);
+                this.bug2.setVisible(false);
+                laser.setActive(false);
+                laser.setVisible(false);
+                self.addBug2();
+            }
+        }.bind(this), null, this);
     }
 
     createBackground() {
@@ -226,5 +276,9 @@ export default class PlayScene extends Scene {
         let scaleY = this.cameras.main.height / this.spceBack.height
         let scale = Math.max(scaleX, scaleY)
         this.spceBack.setScale(scale).setScrollFactor(1).setDepth(-1);
+    }
+
+    #getRndInteger(min, max) {
+        return Math.floor(Math.random() * (max - min + 1) ) + min;
     }
 }
